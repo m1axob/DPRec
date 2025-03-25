@@ -1,0 +1,19 @@
+embedding_size: 64
+n_ui_layers: 3
+n_layers: [2]
+
+learning_rate_scheduler: [0.96, 50]
+lambda_coeff: 0.9
+reg_weight: 1e-04
+
+knn_k: 10
+
+learning_rate: 0.001
+
+projection_dim: [256]
+hidden_dim: [128]
+cl_loss: [0.0001,0.001,0.01,0.1,1]
+vt_loss: [0.01]
+tempe: [0.1]
+
+hyper_parameters: ["projection_dim","hidden_dim","cl_loss","vt_loss","n_layers","tempe"]
