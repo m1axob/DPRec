@@ -9,8 +9,8 @@
 ***
 
 ## Enviroment Requirement
--python 3.8
--Pytorch 1.12
+* python 3.8
+* Pytorch 1.12
 
 ## Dataset 
 We provide three processed datasets: Baby, Sports and Clothing.
