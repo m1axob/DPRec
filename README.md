@@ -8,14 +8,13 @@
 
 ***
 
-<h2>Enviroment Requirement<h2>
-*python 3.8
-*Pytorch 1.12
+## Enviroment Requirement
+-python 3.8
+-Pytorch 1.12
 
-<h2>Dataset<h2>
- 
+## Dataset 
 We provide three processed datasets: Baby, Sports and Clothing.
 
-<h2>Acknowledgement<h2>
+## Acknowledgement
 The structure of this code is based on [MMRec](https://github.com/enoche/MMRec). Thank for their work.
 
