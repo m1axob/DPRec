@@ -1,14 +1,3 @@
-# coding: utf-8
-# @email: y463213402@gmail.com
-r"""
-MGCN
-################################################
-Reference:
-    https://github.com/demonph10/MGCN
-    ACM MM'2023: [Multi-View Graph Convolutional Network for Multimedia Recommendation]
-    https://arxiv.org/abs/2308.03588
-"""
-
 import os
 import numpy as np
 import scipy.sparse as sp
