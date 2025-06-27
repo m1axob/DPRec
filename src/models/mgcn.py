@@ -126,7 +126,6 @@ class MGCN(GeneralRecommender):
        
        # 加权聚合另一个模态的信息
        enhanced_embeds = torch.mm(attention_weights, modal2_embeds)
-       
        # 残差连接
        return modal1_embeds + 0.2 * enhanced_embeds
 
