@@ -129,25 +129,6 @@ class MGCN(GeneralRecommender):
        
        # 残差连接
        return modal1_embeds + 0.2 * enhanced_embeds
-    # def build_user_user_sim(self):
-    #     """基于用户交互历史构建用户相似度矩阵"""
-    #     # 获取用户-物品交互矩阵 R
-    #     user_item_matrix = self.R.to_dense()  # [n_users, n_items]
-        
-    #     # 计算用户交互的余弦相似度
-    #     norm = torch.norm(user_item_matrix, p=2, dim=1, keepdim=True)
-    #     normalized_matrix = user_item_matrix / (norm + 1e-8)
-    #     user_sim = torch.mm(normalized_matrix, normalized_matrix.t())  # [n_users, n_users]
-        
-    #     # 可选: KNN稀疏化
-    #     if self.knn_k > 0:
-    #         # 保留每个用户的Top-K相似用户
-    #         vals, cols = torch.topk(user_sim, k=self.knn_k, dim=1)
-    #         rows = torch.arange(user_sim.size(0)).view(-1, 1).expand(-1, self.knn_k)
-    #         user_sim = torch.zeros_like(user_sim)
-    #         user_sim[rows.reshape(-1), cols.reshape(-1)] = vals.reshape(-1)
-        
-    #     return user_sim
 
     def get_adj_mat(self):
         adj_mat = sp.dok_matrix((self.n_users + self.n_items, self.n_users + self.n_items), dtype=np.float32)
@@ -229,21 +210,6 @@ class MGCN(GeneralRecommender):
         text_user_embeds = self.cross_modal_enhance(text_user_embeds, image_item_embeds)
         
         text_embeds = torch.cat([text_user_embeds, text_item_embeds], dim=0)
-
-        # Behavior-Aware Fuser
-        # att_common = torch.cat([self.query_common(image_embeds), self.query_common(text_embeds)], dim=-1)
-        # weight_common = self.softmax(att_common)
-        # common_embeds = weight_common[:, 0].unsqueeze(dim=1) * image_embeds + weight_common[:, 1].unsqueeze(
-        #     dim=1) * text_embeds
-        # sep_image_embeds = image_embeds - common_embeds
-        # sep_text_embeds = text_embeds - common_embeds
-        # sep_mm_embeds = self.cb.forward(sep_image_embeds,sep_text_embeds)
-        # side_embeds = (sep_mm_embeds+common_embeds)/2
-        # image_prefer = self.gate_image_prefer(content_embeds)
-        # text_prefer = self.gate_text_prefer(content_embeds)
-        # sep_image_embeds = torch.multiply(image_prefer, sep_image_embeds)
-        # sep_text_embeds = torch.multiply(text_prefer, sep_text_embeds)
-        # side_embeds = (sep_image_embeds + sep_text_embeds + common_embeds) / 3
         
         side_embeds=self.cb.forward(image_embeds,text_embeds)
         all_embeds = content_embeds + side_embeds
@@ -306,21 +272,12 @@ class MGCN(GeneralRecommender):
         side_embeds_users, side_embeds_items = torch.split(side_embeds, [self.n_users, self.n_items], dim=0)
         content_embeds_user, content_embeds_items = torch.split(content_embeds, [self.n_users, self.n_items], dim=0)
 
-        # noisy_image_embeds = self.add_noise(image_embeds, noise_type='gaussian', noise_level=0.1)
-        # noisy_text_embeds = self.add_noise(text_embeds, noise_type='gaussian', noise_level=0.1)
-
-        # image_embeds_user, image_embeds_items = torch.split(image_embeds, [self.n_users, self.n_items], dim=0)
-        # text_embeds_user, text_embeds_items = torch.split(text_embeds, [self.n_users, self.n_items], dim=0)
-
-
         cl_loss = self.InfoNCE(side_embeds_items[pos_items], content_embeds_items[pos_items], 0.2) + self.InfoNCE(
             side_embeds_users[users], content_embeds_user[users], 0.2)
 
-        # image_user_embeds, image_item_embeds = torch.split(image_embeds, [self.n_users, self.n_items], dim=0)
-        # text_user_embeds, text_item_embeds = torch.split(text_embeds, [self.n_users, self.n_items], dim=0)
-        # user_vt_loss = self.align_vt(image_user_embeds, text_user_embeds)
+        
         # # 2. 物品层面的模态对齐
-        # item_vt_loss = self.align_vt(image_item_embeds, text_item_embeds)
+        
         # 3. 整体表示的模态对齐
         vt_loss = self.modal_contrast_loss(image_embeds, text_embeds,self.tempe)
         
@@ -340,13 +297,7 @@ class MGCN(GeneralRecommender):
         scores = torch.matmul(u_embeddings, restore_item_e.transpose(0, 1))
         return scores
 
-    # def align_vt(self, embed1, embed2):
-    #     emb1_var, emb1_mean = torch.var(embed1), torch.mean(embed1)
-    #     emb2_var, emb2_mean = torch.var(embed2), torch.mean(embed2)
 
-    #     vt_loss = (torch.abs(emb1_var - emb2_var) + torch.abs(emb1_mean - emb2_mean)).mean()
-
-    #     return vt_loss
 
     def add_noise(self, embeds, noise_type='gaussian', noise_level=0.1):
         if noise_type == 'gaussian':
@@ -377,53 +328,7 @@ class MGCN(GeneralRecommender):
         cic_loss = 0.5 * (c2i_loss + i2c_loss)
         return cic_loss
 
-    # def compute_itc_loss(self, image_embeds, text_embeds):
-    #     """计算图像-文本对比损失(ITC)
-    #     Args:
-    #         image_embeds: 图像特征 [batch_size, dim]
-    #         text_embeds: 文本特征 [batch_size, dim]
-    #     Returns:
-    #         loss_itc: 对比损失值
-    #     """
-    #     # 特征归一化
-    #     image_embeds = F.normalize(image_embeds, dim=-1)
-    #     text_embeds = F.normalize(text_embeds, dim=-1)
-        
-    #     # 计算相似度矩阵
-    #     sim_i2t = torch.matmul(image_embeds, text_embeds.t()) / 0.1  # [batch_size, batch_size]
-    #     sim_t2i = sim_i2t.t()
-        
-    #     # 构建标签(对角线为正样本)
-    #     labels = torch.arange(image_embeds.size(0)).to(self.device)
-        
-    #     # 计算图像到文本和文本到图像的对比损失
-    #     loss_i2t = F.cross_entropy(sim_i2t, labels)
-    #     loss_t2i = F.cross_entropy(sim_t2i, labels)
-        
-    #     # 总的ITC损失
-    #     loss_itc = (loss_i2t + loss_t2i) / 2
-    #     return loss_itc
-    # def align_uniform_loss(self, image_embeds, text_embeds, alpha=2, t=2):
-    #     """对齐和均匀性损失
-    #     Args:
-    #         image_embeds: 图像特征 [batch_size, dim]
-    #         text_embeds: 文本特征 [batch_size, dim]
-    #         alpha: 对齐损失权重
-    #         t: 均匀性损失的温度参数
-    #     """
-    #     # 特征归一化
-    #     image_embeds = F.normalize(image_embeds, dim=-1)
-    #     text_embeds = F.normalize(text_embeds, dim=-1)
-        
-    #     # 对齐损失 - 最小化配对样本的距离
-    #     align_loss = torch.mean(torch.norm(image_embeds - text_embeds, dim=1) ** 2)
-        
-    #     # 均匀性损失 - 使特征分布更均匀
-    #     img_uniform = torch.pdist(image_embeds, p=2).pow(2).mul(-t).exp().mean().log()
-    #     txt_uniform = torch.pdist(text_embeds, p=2).pow(2).mul(-t).exp().mean().log()
-    #     uniform_loss = (img_uniform + txt_uniform) / 2
-        
-    #     return alpha * align_loss - uniform_loss
+
 
     def align_vt(self, embed1, embed2):
         emb1_var, emb1_mean = torch.var(embed1), torch.mean(embed1)
@@ -439,28 +344,7 @@ class MGCN(GeneralRecommender):
         vt_loss = torch.mean(var_ratio + mean_ratio) + 1e-4 * var_l2
     
         return vt_loss
-    # def content_id_contrastive(self, content_feature, id_feature):
-    #     content_feature = self.cic_image_linear(content_feature)
-    #     id_feature = self.cic_text_linear(id_feature)
-    #     content_feature = torch.nn.functional.normalize(content_feature, p=2, dim=-1, eps=1e-5)
-    #     id_feature = torch.nn.functional.normalize(id_feature, p=2, dim=-1, eps=1e-5)
-    #
-    #     bs, _ = content_feature.size()
-    #     neg_sample_id = torch.randint(0, bs, [bs, 16]) #.to(content_feature.device)
-    #     neg_id_feat = id_feature[neg_sample_id]
-    #     neg_content_feat = content_feature[neg_sample_id]
-    #     id_samples = torch.cat([id_feature.unsqueeze(1), neg_id_feat], 1)
-    #     content_samples = torch.cat([content_feature.unsqueeze(1), neg_content_feat], 1)
-    #
-    #     c2i_score = torch.matmul(id_samples, content_feature.unsqueeze(2)).squeeze(2) / 0.1
-    #     i2c_score = torch.matmul(content_samples, id_feature.unsqueeze(2)).squeeze(2) / 0.1
-    #
-    #     label = torch.zeros([bs, ], dtype=torch.long).to(content_feature.device)
-    #     c2i_loss = torch.nn.functional.cross_entropy(c2i_score, label)
-    #     i2c_loss = torch.nn.functional.cross_entropy(i2c_score, label)
-    #     cic_loss = 0.5 * (c2i_loss + i2c_loss)
-    #     return cic_loss
-    #def modal_contrast_loss(self, image_embeds, text_embeds, temperature=0.1):
+   
     def modal_contrast_loss(self, image_embeds, text_embeds, temperature):
         """轻量级的模态对比损失
         Args:
